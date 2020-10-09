@@ -7,4 +7,4 @@ toBinary(){
 		printf "%s\n" "$bit"
 }
 
-[ $(isnum $1) -eq 1 ] && toBinary $1 || exit 1
+toBinary $1
