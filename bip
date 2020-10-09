@@ -1,0 +1,10 @@
+#!/bin/bash
+
+addr1=$(echo $1 | cut -d "." -f 1)
+addr2=$(echo $1 | cut -d "." -f 2)
+addr3=$(echo $1 | cut -d "." -f 3)
+addr4=$(echo $1 | cut -d "." -f 4)
+
+. binary s
+
+echo $(toBinary $addr1)"."$(toBinary $addr2)"."$(toBinary $addr3)"."$(toBinary $addr4)

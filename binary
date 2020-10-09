@@ -1,0 +1,10 @@
+#!/bin/bash
+isnum() { awk -v a="$1" 'BEGIN {print (a == a + 0)}' >/dev/null; }
+
+toBinary(){
+	local n bit
+	for (( n=$1 ; n>0 ; n >>= 1 )); do  bit="$(( n&1 ))$bit"; done
+		printf "%s\n" "$bit"
+}
+
+[ $(isnum $1) -eq 1 ] && toBinary $1 || exit 1

@@ -1,0 +1,14 @@
+[[ -z $1 ]] && echo -e "Usage: texbib <file>\n* Example,\n  * texbib file\n  * Will generate "file.pdf" from file.tex and look for references in file.bib (if it exists)" && exit 1
+[[ ! -f $1.tex ]] && echo "ERROR: \"$1.tex\" not found." && exit 1
+pdflatex $1.tex && biber $1; pdflatex $1.tex && pdflatex $1.tex
+rm -f *.aux
+rm -f *.bbl
+rm -f *.bcf
+rm -f *.blg
+rm -f *.log
+rm -f *.xml
+rm -f *.nav
+rm -f *.out
+rm -f *.snm
+rm -f *.toc
+[[ ! -f $1.bib ]] && echo  "WARNING: no \"$1.bib\" found."

@@ -1,2 +1,2 @@
 # bin
-My scripts
+All of my scripts
