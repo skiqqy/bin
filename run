@@ -1,5 +1,6 @@
 #!/bin/bash
 # @Auther skiqqy
+# Launches my web-applications in surf
 
 PI="192.168.68.106" # Change ip to machine you wish to connect to.
 SURF="https://surf.suckless.org/"
