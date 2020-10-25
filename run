@@ -1,0 +1,45 @@
+#!/bin/bash
+# @Auther skiqqy
+
+PI="192.168.68.106" # Change ip to machine you wish to connect to.
+SURF="https://surf.suckless.org/"
+
+# Import stuff
+SCRIPT_PATH=$(dirname $0)
+. "$SCRIPT_PATH/error.sh"
+
+usage () {
+	echo -e "Usage: launch [options]\n"
+	echo -e "h:\tShows this message."
+	echo -e "d:\tLaunches cockpit-docker."
+}
+
+[ ! $(command -v surf) ] && error "Missing 'surf' dependecy. Download it here: $SURF" 1 || echo "Found 'surf'"
+[[ $# -eq 0 ]] && error "Must have arguments, for help use \'-h\'" 1 || echo "Starting launcher"
+
+while getopts "hdbgGH" opt
+do
+	case $opt in
+		h)
+			usage
+			;;
+		d)
+			surf "$PI:9090/docker" &
+			;;
+		b)
+			surf "https://blog.skiqqy.xyz/ghost/" &
+			;;
+		g)
+			surf "https://git.skiqqy.xyz/" &
+			;;
+		G)
+			surf "https://github.com/skiqqy/" &
+			;;
+		H)
+			surf "https://skiqqy.xyz/" &
+			;;
+		*)
+			error "Invalid arg" 1
+			;;
+	esac
+done
