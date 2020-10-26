@@ -18,7 +18,7 @@ usage () {
 [ ! $(command -v surf) ] && error "Missing 'surf' dependecy. Download it here: $SURF" 1 || echo "Found 'surf'"
 [[ $# -eq 0 ]] && error "Must have arguments, for help use \'-h\'" 1 || echo "Starting launcher"
 
-while getopts "hdbgGH" opt
+while getopts "hdbgfGH" opt
 do
 	case $opt in
 		h)
@@ -32,6 +32,9 @@ do
 			;;
 		g)
 			surf "https://git.skiqqy.xyz/" &
+			;;
+		f)
+			surf "https://files.skiqqy.xyz/" &
 			;;
 		G)
 			surf "https://github.com/skiqqy/" &
