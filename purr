@@ -7,7 +7,7 @@ SCRIPT_PATH=$(dirname $0)
 [ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import"
 
 usage () {
-	echo -e "meow [options]\n"
+	echo -e "purr [options]\n"
 	echo "h: Shows this message."
 	echo "a: Append Text to a file."
 }
