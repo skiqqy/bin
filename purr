@@ -3,7 +3,8 @@
 # This is a simple script allowing for easy creation of simple files.
 
 SCRIPT_PATH=$(dirname $0)
-. "$SCRIPT_PATH/error.sh"
+. "$SCRIPT_PATH/error.sh" > /dev/null 2>&1
+[ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import"
 
 usage () {
 	echo -e "meow [options]\n"
