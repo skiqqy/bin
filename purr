@@ -1,0 +1,48 @@
+#!/bin/bash
+# Auther: Skiqqy
+# This is a simple script allowing for easy creation of simple files.
+
+SCRIPT_PATH=$(dirname $0)
+. "$SCRIPT_PATH/error.sh"
+
+usage () {
+	echo -e "meow [options]\n"
+	echo "h: Shows this message."
+	echo "a: Append Text to a file."
+}
+
+while getopts "ha:f:" opt
+do
+	case $opt in
+		h)
+			usage
+			exit 0
+			;;
+		a)
+			append=1
+			file="$OPTARG"
+			;;
+		f)
+			file="$OPTARG"
+			;;
+		*)
+			error "Invalid arg, use -h to see how to use purr." 1
+			;;
+	esac
+done
+
+[ -z $file ] && file="$RANDOM.purr"
+if [ -z $append ]
+then
+	echo $file
+	printf -- "-%.0s" $(seq $(tput cols)) && echo
+	$(exec cat > $file && echo "Finished writing to $file.")
+	printf -- "-%.0s" $(seq $(tput cols))
+else
+	[ ! -f $file ] && warning "'$file' does not exist, creating."
+	echo $file
+	printf -- "-%.0s" $(seq $(tput cols)) && echo
+	[ -f $file ] && cat $file
+	$(exec cat >> $file && echo "Finished appending to $file.")
+	printf -- "-%.0s" $(seq $(tput cols))
+fi
