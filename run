@@ -7,7 +7,7 @@ SURF="https://surf.suckless.org/"
 
 # Import stuff
 SCRIPT_PATH=$(dirname $0)
-. "$SCRIPT_PATH/error.shs" > /dev/null 2>&1
+. "$SCRIPT_PATH/error.sh" > /dev/null 2>&1
 [ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import"
 
 usage () {
