@@ -8,7 +8,7 @@ SURF="https://surf.suckless.org/"
 # Import stuff
 SCRIPT_PATH=$(dirname $0)
 . "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
-[ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import"
+[ ! $(command -v error) ] && echo "[WARNING] Missing 'alert.sh' import"
 
 usage () {
 	echo -e "Usage: launch [options]\n"
