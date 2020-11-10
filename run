@@ -38,7 +38,7 @@ do
 			surf "https://files.skiqqy.xyz/" &
 			;;
 		s)
-			surf "https://fosstodon.org/" &
+			surf "https://social.skiqqy.xyz/" &
 			;;
 		m)
 			surf "https://music.skiqqy.xyz/" &
