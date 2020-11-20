@@ -8,9 +8,9 @@ SCRIPT_PATH=$(dirname $0)
 
 # Check dependencies
 [ ! $(command -v error) ] && echo "[WARNING] Missing 'alert.sh' import"
-[ ! $(command -v i3lock) ] && error "Missing command 'i3lock'"
-[ ! $(command -v scrot) ] && error "Missing command 'scrot'"
-[ ! $(command -v convert) ] && error "Missing 'convert', provided by ImageMagick"
+[ ! $(command -v i3lock) ] && error "Missing command 'i3lock'" || tick "'i3lock' found"
+[ ! $(command -v scrot) ] && error "Missing command 'scrot'" || tick "'scrot' found"
+[ ! $(command -v convert) ] && error "Missing 'convert', provided by ImageMagick" || tick "'convert' found"
 
 path="$HOME/Pictures"
 scrot $path/.slock.png

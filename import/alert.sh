@@ -4,6 +4,7 @@
 # USAGE: error "message" <exit_code>
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
+GREEN='\e[92m'
 NC='\033[0m'
 
 # Display an error message and exit.
@@ -15,4 +16,12 @@ error () {
 
 warning () {
 	printf "[${YELLOW}WARNING${NC}] $1\n"
+}
+
+success () {
+	printf "[${GREEN}SUCCESS${NC}] $1\n"
+}
+
+tick () {
+	printf "$1 ${GREEN}✔${NC}\n"
 }
