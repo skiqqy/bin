@@ -1,0 +1,19 @@
+#!/bin/bash
+# Simple lock, using i3-lock
+# Author: Skiqqy
+
+# Import stuff
+SCRIPT_PATH=$(dirname $0)
+. "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
+
+# Check dependencies
+[ ! $(command -v error) ] && echo "[WARNING] Missing 'alert.sh' import"
+[ ! $(command -v i3lock) ] && error "Missing command 'i3lock'"
+[ ! $(command -v scrot) ] && error "Missing command 'scrot'"
+[ ! $(command -v convert) ] && error "Missing 'convert', provided by ImageMagick"
+
+path="$HOME/Pictures"
+scrot $path/.slock.png
+convert -scale 10% -scale 1000% $path/.slock.png $path/.slock.png
+i3lock -i $path/.slock.png
+rm $path/.slock.png
