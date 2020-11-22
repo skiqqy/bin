@@ -1,0 +1,4 @@
+#!/bin/bash
+# Simple calculator using bc (just so that i dont have to start up python)
+# Usage ./calc 2^2 # Prints 4
+echo "$@" | bc
