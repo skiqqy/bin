@@ -1,0 +1,66 @@
+#!/bin/bash
+# Auther: Skiqqy
+# This script checks on my web server and sends an email if it is down.
+
+SCRIPT_PATH=$(dirname $0)
+. "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
+[ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import."
+[ ! $(command -v mail) ] && error "Missing \'mail\' command."
+[ ! $(command -v mailx) ] && error "Missing \'mailx\' command."
+[ ! $(command -v sendmail) ] && error "Missing \'sendmail\' command."
+
+# Vars
+domain="skiqqy.xyz"
+subd=( api git irc proj blog wiki files social music dev )
+MAIL="skippycochrane@gmail.com" # Who we will me mailing.
+SLEEP=60
+DOWNC=5 # What we consider to be an unacceptable amount of down domains warrenting an email.
+
+http_code () {
+	echo $(curl -s -o /dev/null -w "%{http_code}" $1)
+}
+
+# Sends a mail to described person
+# $1 message
+# $2 subject
+send_mail () {
+	if [ -z $reset ]
+	then
+		warning "Server down, sending mail"
+		reset=0
+		echo -e "$1" | mail -s $2 $MAIL
+	fi
+}
+
+for ((;;))
+do
+	code=$(http_code https://$domain)
+	down=()
+	downc=0
+	if [ "$code" -eq 200 ]
+	then
+		for sub in ${subd[@]}
+		do
+			code=$(http_code "https://$sub.$domain")
+			if [ ! "$code" -eq 200 ]
+			then
+				# We take note that this domain is down.
+				downc=$(( downc + 1 ))
+				down+=( "$sub.domain" )
+			fi
+		done
+
+		# Check to see if the # of downed domains warrents an email.
+		if [ "$downc" -ge $DOWNC ]
+		then
+			send_mail "The following domains are down\n${down[@]}" "Server Warning: Catastrophic"
+		else
+			reset=
+		fi
+	else
+		warning "$domain is down"
+		send_mail "$domain is down." "Server Warning"
+	fi
+	sleep $SLEEP
+done
+
