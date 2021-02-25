@@ -1,0 +1,19 @@
+#!/bin/bash
+# Simple script that uses dmenu to get input, and then invokes killall -9 <input>
+
+SCRIPT_PATH=$(dirname $0)
+. "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
+[ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import."
+[ ! $(command -v dmenu) ] && error "Missing 'dmenu' dependency."
+
+# Use dmenu to get input
+dmenui () {
+	dmenu << EOF
+EOF
+}
+
+input=$(dmenui)
+
+[ -z $input ] && error "No input provided" 1 || echo "Killing $input"
+
+killall -9 $input
