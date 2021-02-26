@@ -1,0 +1,29 @@
+#!/bin/bash
+# Author: Skiqqy
+# Download and view a pdf.
+# Usage fpdf http://some.domain/some.pdf
+
+SCRIPT_PATH=$(dirname $0)
+. "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
+. "$SCRIPT_PATH/import/dinput.sh" > /dev/null 2>&1
+
+[ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import."
+[ ! $(command -v dmenu) ] && error "Missing 'dmenu' dependency." 1
+[ ! $(command -v mupdf) ] && error "Missing 'mupdf' dependency." 1
+[ ! $(command -v dinput) ] && error "Missing 'dinput.sh' import." 1
+
+if [ -z $1 ]
+then
+	error "Missing argument."
+fi
+
+file=$(basename $1)
+extension=$(echo $file | cut -d "." -f 2)
+
+if [ "$extension" == "pdf" ]
+then
+	curl -s $1 > /tmp/$file
+	mupdf -C FFDED7 /tmp/$file &
+else
+	error "Invalid file type."
+fi
