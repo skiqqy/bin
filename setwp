@@ -43,6 +43,7 @@ do
 	case $opt in
 		h)
 			usage
+			exit 0
 			;;
 		d)
 			if [ -d "$OPTARG" ]
