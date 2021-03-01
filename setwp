@@ -31,10 +31,20 @@ swp () {
 # cycle /path/to/dir
 cycle () {
 	d=${wpdir%/}
+	if [ $(echo "$t < 1" | bc) -eq 1 ]
+	then
+		echo "Invalid time used: t was '$t', now set to '600'"
+		t=600
+	fi
 	for file in $d/{*.png,*.jpg,*.jpeg}
 	do
 		swp $file
 		sleep $t
+		if [ ! $? -eq 0 ]
+		then
+			echo "An error occured in cycle, did you set time to a valid number?"
+			exit 1
+		fi
 	done
 }
 
