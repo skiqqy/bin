@@ -1,1 +1,81 @@
-feh --bg-center $1
+#!/bin/sh
+# Usage: setwp -h
+# Author: Skiqqy
+# This script allows the setting of a static wallpaper, or cycling through a set of wallpapers.
+
+# Variables
+set -B
+t=600
+
+usage () {
+cat << EOF
+Usage: setwp [options]
+
+h: Shows this message.
+d: Use the pictures in the specified directory, cycle with time t (default 10 min).
+t: set time t to a specific value.
+z: Make feh zoom in on the wallpapers.
+f: specify a single picture to use.
+EOF
+}
+
+swp () {
+	if [ -z $zoom ]
+	then
+		feh --bg-scale $1
+	else
+		feh --bg-fill $1
+	fi
+}
+
+# cycle /path/to/dir
+cycle () {
+	d=${wpdir%/}
+	for file in $d/{*.png,*.jpg,*.jpeg}
+	do
+		swp $file
+		sleep $t
+	done
+}
+
+while getopts "hd:t:zf:" opt
+do
+	case $opt in
+		h)
+			usage
+			;;
+		d)
+			if [ -d "$OPTARG" ]
+			then
+				wpdir="$OPTARG"
+			fi
+			sf=0
+			;;
+		t)
+			t="$OPTARG"
+			;;
+		z)
+			zoom=1
+			;;
+		f)
+			pic="$OPTARG"
+			;;
+		*)
+			echo "Invalid arg"
+			exit 1
+			;;
+	esac
+done
+
+if [ ! -z $wpdir ]
+then
+	cycle
+elif [ ! -z $pic ]
+then
+	swp $pic
+elif [ -z $sf ]
+then
+	swp $1
+else
+	echo Error.
+fi
