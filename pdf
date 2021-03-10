@@ -13,7 +13,7 @@ com="mupdf -C FFDED7"
 . "$SCRIPT_PATH/import/stdlib.sh" > /dev/null 2>&1
 
 [ ! "$(command -v error)" ] && echo "[WARNING] Missing 'error.sh' import."
-[ ! "$(command -v mupdf)" ] && error "Missing 'mupdf' dependency." 1
+[ ! "$(command -v mupdf)" ] && warning "Missing 'mupdf' dependency." 1
 
 usage ()
 {
@@ -26,12 +26,20 @@ Usage: fpdf [options] file
 h:	Shows this message.
 p:	Use dmenu to enter a password for the pdf.
 v:	Specify which pdf viewer you want to use.
-c:	Compile a pdf from a .tex or .md.
+e:	Use gimp to edit a pdf.
+d:	Use mutool (from mupdf) to decompile a pdf.
+c:	Compile a pdf, Supported file type(s) include:
+	 - .md
+	 - .tex
+	 - .1 (man pages)
 
 Example(s)
 \$ pdf https://skiqqy.xyz/assets/CurriculumVitae.pdf # Download and open pdf
+\$ pdf some.pdf # open pdf
 \$ pdf document.tex # Compile a tex file to 'document.pdf'
 \$ pdf document.md  # Compile a md file to 'document.pdf'
+
+Author: Skiqqy
 EOF
 }
 
@@ -54,10 +62,10 @@ fetch_pdf ()
 	then
 		if [ -z $url ]
 		then
-			$com "$file" &
+			$com "$file"
 		else
 			curl -s "$url" > /tmp/"$file"
-			$com /tmp/"$file" &
+			$com /tmp/"$file"
 		fi
 	else
 		error "Invalid file type."
@@ -68,28 +76,40 @@ fetch_pdf ()
 # Note: will, if we call with "file_name", then it will also use a "file_name.bib" when building, if it exists
 build_tex ()
 {
-	[ ! -f "$1.tex" ] && error "\'$1.tex\' not found."
+	[ ! "$(command -v pdflatex)" ] && error "Missing 'pdflatex', cannot build from .tex"
 	pdflatex "$1".tex && biber "$1"; pdflatex "$1".tex && pdflatex "$1".tex
 	[ ! -f "$1.bib" ] && warning "\'$1.bib\' not found, skipped."
 	rm -f "$1."{'aux','bbl','bcf','blg','log','xml','nav','out','snm','toc'} && success "Cleaned build files."
 }
 
 # Usage: build_md "file_name"
-# Compiles file_name.md to filename.pdf
+# Compiles file_name.md to file_name.pdf
 build_md ()
 {
-	[ ! "$(command -v pandoc)" ] && error "Missing pandoc, cannot build from .md."
+	[ ! "$(command -v pandoc)" ] && error "Missing 'pandoc', cannot build from .md"
 	pandoc "$1.md" -o "$1.pdf" && success "Compiled \'$1.md\'."
+}
+
+# Usage: build_man_page "file_name"
+# Compiles file_name.1 to file_name.pdf
+build_man_page ()
+{
+	[ ! "$(command -v ps2pdf)" ] && error "Missing 'ps2pdf', cannot build from .1"
+	man -t <(cat "$1.1") | ps2pdf - "$1.pdf"
 }
 
 parse_build ()
 {
+	[ ! -f "$file.$ftype" ] && error "\'$file.$ftype\' not found."
 	case $ftype in
 		tex)
 			build_tex "$file"
 			;;
 		md)
 			build_md "$file"
+			;;
+		1)
+			build_man_page "$file"
 			;;
 		*)
 			error "Unknown file extension."
@@ -101,7 +121,9 @@ main ()
 {
 	if [ "${#args[@]}" -lt 1 ]
 	then
-	error "Missing file." 1
+		warning "Missing file."
+		usage
+		exit 1
 	fi
 
 	index=$((${#args[@]} - 1))
@@ -110,7 +132,7 @@ main ()
 	ftype=$(echo "$base" | cut -d\. -f 2)
 	file=$(echo "$base" | cut -d\. -f 1)
 
-	while getopts "hpcv:" opt
+	while getopts "hpcv:ed" opt
 	do
 		case $opt in
 			h)
@@ -128,6 +150,17 @@ main ()
 				;;
 			v)
 				com="$OPTARG"
+				;;
+			e)
+				[ ! "$ftype" = "pdf" ] && error "Not a pdf!"
+				gimp "${args[$index]}"
+				return 0
+				;;
+			d)
+				[ ! "$ftype" = "pdf" ] && error "Not a pdf!"
+				file="${args[$index]}"
+				mutool clean -d "$file" "decompiled-$file"
+				return 0
 				;;
 			*)
 				error "Invalid arg, use -h for help." 1
