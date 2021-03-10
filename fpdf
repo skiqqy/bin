@@ -15,7 +15,7 @@ com="mupdf -C FFDED7"
 usage ()
 {
 cat << EOF
-fpdf [options] file
+Example: fpdf [options] https://skiqqy.xyz/assets/CurriculumVitae.pdf
 
 h:	Shows this message.
 p:	Use dmenu to enter a password for the pdf.
