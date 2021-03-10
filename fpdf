@@ -3,24 +3,57 @@
 # Download and view a pdf.
 # Usage fpdf http://some.domain/some.pdf
 
-SCRIPT_PATH=$(dirname $0)
+args=("$@")
+SCRIPT_PATH=$(dirname "$0")
+com="mupdf -C FFDED7"
+# shellcheck source=./import/alert.sh
 . "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
 
-[ ! $(command -v error) ] && echo "[WARNING] Missing 'error.sh' import."
-[ ! $(command -v mupdf) ] && error "Missing 'mupdf' dependency." 1
+[ ! "$(command -v error)" ] && echo "[WARNING] Missing 'error.sh' import."
+[ ! "$(command -v mupdf)" ] && error "Missing 'mupdf' dependency." 1
 
-if [ -z $1 ]
+usage ()
+{
+cat << EOF
+fpdf [options] file
+
+h:	Shows this message.
+p:	Use dmenu to enter a password for the pdf.
+EOF
+}
+
+while getopts "hp" opt
+do
+	case $opt in
+		h)
+			usage
+			exit 0
+			;;
+		p)
+			[ ! "$(command -v dmenu)" ] && error "Missing 'dmenu' dependency." 1
+			pass="$(echo "" | dmenu -p "PDF Password:")"
+			com="$com -p $pass"
+			;;
+		*)
+			error "Invalid arg, use -h to see how to use purr." 1
+			;;
+	esac
+done
+
+if [ "${#args[@]}" -lt 1 ]
 then
-	error "Missing argument."
+	error "Missing file." 1
 fi
 
-file=$(basename $1)
-extension=$(echo $file | cut -d "." -f 2)
+index=$((${#args[@]} - 1))
+url="${args[$index]}"
+file=$(basename "$url")
+extension=$(echo "$file" | cut -d "." -f 2)
 
 if [ "$extension" == "pdf" ]
 then
-	curl -s $1 > /tmp/$file
-	mupdf -C FFDED7 /tmp/$file &
+	curl -s "$url" > /tmp/"$file"
+	$com /tmp/"$file" &
 else
 	error "Invalid file type."
 fi
