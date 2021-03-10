@@ -1,0 +1,149 @@
+#!/bin/bash
+# Author: Skiqqy
+# Basically solves any problem that has to do with pdfs
+# Usage fpdf -h
+
+# TODO: When compiling a pdf; add a --output option
+
+args=("$@")
+SCRIPT_PATH=$(dirname "$0")
+com="mupdf -C FFDED7"
+# shellcheck source=./import/alert.sh
+. "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
+. "$SCRIPT_PATH/import/stdlib.sh" > /dev/null 2>&1
+
+[ ! "$(command -v error)" ] && echo "[WARNING] Missing 'error.sh' import."
+[ ! "$(command -v mupdf)" ] && error "Missing 'mupdf' dependency." 1
+
+usage ()
+{
+cat << EOF
+pdf ~ An easy way to deal with pdfs
+-----------------------------------
+
+Usage: fpdf [options] file
+
+h:	Shows this message.
+p:	Use dmenu to enter a password for the pdf.
+v:	Specify which pdf viewer you want to use.
+c:	Compile a pdf from a .tex or .md.
+
+Example(s)
+\$ pdf https://skiqqy.xyz/assets/CurriculumVitae.pdf # Download and open pdf
+\$ pdf document.tex # Compile a tex file to 'document.pdf'
+\$ pdf document.md  # Compile a md file to 'document.pdf'
+EOF
+}
+
+fetch_pdf ()
+{
+	index=$((${#args[@]} - 1))
+	url="${args[$index]}"
+
+	# Check to see if we need to download the pdf
+	if [[ "$url" =~ ^http:// ]] || [[ "$url" =~ ^https:// ]]
+	then
+		file=$(basename "$url")
+	else
+		file="$url"
+		url=
+	fi
+	extension=$(echo "$file" | cut -d "." -f 2)
+
+	if [ "$extension" == "pdf" ]
+	then
+		if [ -z $url ]
+		then
+			$com "$file" &
+		else
+			curl -s "$url" > /tmp/"$file"
+			$com /tmp/"$file" &
+		fi
+	else
+		error "Invalid file type."
+	fi
+}
+
+# Usage: build_tex "file_name"
+# Note: will, if we call with "file_name", then it will also use a "file_name.bib" when building, if it exists
+build_tex ()
+{
+	[ ! -f "$1.tex" ] && error "\'$1.tex\' not found."
+	pdflatex "$1".tex && biber "$1"; pdflatex "$1".tex && pdflatex "$1".tex
+	[ ! -f "$1.bib" ] && warning "\'$1.bib\' not found, skipped."
+	rm -f "$1."{'aux','bbl','bcf','blg','log','xml','nav','out','snm','toc'} && success "Cleaned build files."
+}
+
+# Usage: build_md "file_name"
+# Compiles file_name.md to filename.pdf
+build_md ()
+{
+	[ ! "$(command -v pandoc)" ] && error "Missing pandoc, cannot build from .md."
+	pandoc "$1.md" -o "$1.pdf" && success "Compiled \'$1.md\'."
+}
+
+parse_build ()
+{
+	case $ftype in
+		tex)
+			build_tex "$file"
+			;;
+		md)
+			build_md "$file"
+			;;
+		*)
+			error "Unknown file extension."
+			;;
+	esac
+}
+
+main ()
+{
+	if [ "${#args[@]}" -lt 1 ]
+	then
+	error "Missing file." 1
+	fi
+
+	index=$((${#args[@]} - 1))
+	file="${args[$index]}"
+	base=$(basename "$file" 2>/dev/null)
+	ftype=$(echo "$base" | cut -d\. -f 2)
+	file=$(echo "$base" | cut -d\. -f 1)
+
+	while getopts "hpcv:" opt
+	do
+		case $opt in
+			h)
+				usage
+				exit 0
+				;;
+			p)
+				[ ! "$(command -v dmenu)" ] && error "Missing 'dmenu' dependency." 1
+				pass=$(prompt "PDF Password:")
+				com="$com -p $pass"
+				;;
+			c) # Force a compile (for debugging)
+				parse_build
+				return 0
+				;;
+			v)
+				com="$OPTARG"
+				;;
+			*)
+				error "Invalid arg, use -h for help." 1
+				;;
+		esac
+	done
+
+	# Detect what we must do, based on file extension.
+	case $ftype in
+		pdf)
+			fetch_pdf # We open if the extension is .pdf
+			;;
+		*)
+			parse_build # If the extionsion is not .pdf, we attempt to build it
+			;;
+		esac
+}
+
+main "$@"
