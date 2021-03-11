@@ -7,7 +7,7 @@
 
 args=("$@")
 SCRIPT_PATH=$(dirname "$0")
-com="mupdf -C FFDED7"
+com="mupdf -C FFDED7 -I"
 # shellcheck source=./import/alert.sh
 . "$SCRIPT_PATH/import/alert.sh" > /dev/null 2>&1
 . "$SCRIPT_PATH/import/stdlib.sh" > /dev/null 2>&1
@@ -32,6 +32,7 @@ c:	Compile a pdf and then open it, Supported file type(s) include:
 	 - .md
 	 - .tex
 	 - .1 (man pages)
+t:	Generate a .tex skeleton document.
 
 Example(s)
 \$ pdf https://skiqqy.xyz/assets/CurriculumVitae.pdf # Download and open pdf
@@ -118,6 +119,24 @@ parse_build ()
 	esac
 }
 
+gen_tex_skelly ()
+{
+cat << EOF
+\documentclass{article}
+
+\\title{TITLE}
+\\author{$USER}
+\date{\\today}
+
+\\begin{document}
+\maketitle
+\\tableofcontents
+
+\\section{Introduction}
+\\end{document}
+EOF
+}
+
 main ()
 {
 	if [ "${#args[@]}" -lt 1 ]
@@ -133,7 +152,7 @@ main ()
 	ftype=$(echo "$base" | cut -d\. -f 2)
 	file=$(echo "$base" | cut -d\. -f 1)
 
-	while getopts "hpcv:ed" opt
+	while getopts "hpcv:edt" opt
 	do
 		case $opt in
 			h)
@@ -165,6 +184,10 @@ main ()
 				[ ! "$ftype" = "pdf" ] && error "Not a pdf!"
 				file="${args[$index]}"
 				mutool clean -d "$file" "decompiled-$file"
+				return 0
+				;;
+			t)
+				gen_tex_skelly
 				return 0
 				;;
 			*)
