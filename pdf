@@ -1,7 +1,7 @@
 #!/bin/bash
 # Author: Skiqqy
 # Basically solves any problem that has to do with pdfs
-# Usage fpdf -h
+# Usage: pdf -h
 
 args=("$@")
 SCRIPT_PATH=$(dirname "$0")
