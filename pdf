@@ -3,8 +3,6 @@
 # Basically solves any problem that has to do with pdfs
 # Usage fpdf -h
 
-# TODO: When compiling a pdf; add a --output option
-
 args=("$@")
 SCRIPT_PATH=$(dirname "$0")
 com="mupdf -C FFDED7 -I"
@@ -15,6 +13,18 @@ com="mupdf -C FFDED7 -I"
 [ ! "$(command -v error)" ] && echo "[WARNING] Missing 'error.sh' import."
 [ ! "$(command -v mupdf)" ] && warning "Missing 'mupdf' dependency." 1
 
+# Keep track of what needs to be done.
+TODO ()
+{
+cat << EOF
+pdf ~ TODO Tracker
+------------------
+
+TODO: Fix argument passing to only set vars, not run functions, as this is bad style.
+	- Reason: Program can 'break' if arguments are passed in a wierd order.
+EOF
+}
+
 usage ()
 {
 cat << EOF
@@ -23,18 +33,24 @@ pdf ~ An easy way to deal with pdfs
 
 Usage: fpdf [options] file
 
-h:	Shows this message.
-p:	Use dmenu to enter a password for the pdf.
-v:	Specify which pdf viewer you want to use.
-e:	Use gimp to edit a pdf.
-d:	Use mutool (from mupdf) to decompile a pdf.
-c:	Compile a pdf and then open it, Supported file type(s) include:
-	 - .md
-	 - .tex
-	 - .1 (man pages)
-t:	Generate a .tex skeleton document.
+Options
+-------
+-h			Shows this message.
+-o			Specify output file when compiling a pdf.
+-p			Use dmenu to enter a password for the pdf.
+-v			Specify which pdf viewer you want to use.
+-e			Use gimp to edit a pdf.
+-d			Use mutool (from mupdf) to decompile a pdf.
+-c			Compile a pdf and then open it, Supported file type(s) include:
+			 - .md
+			 - .tex
+			 - .1 (man pages)
+-t			Generate a .tex skeleton document.
+--TODO			Lists current TODO's.
+--output=<FILENAME>	Specify outputfile when compiling a pdf.
 
 Example(s)
+----------
 \$ pdf https://skiqqy.xyz/assets/CurriculumVitae.pdf # Download and open pdf
 \$ pdf some.pdf # open pdf
 \$ pdf document.tex # Compile a tex file to 'document.pdf'
@@ -82,6 +98,12 @@ build_tex ()
 	pdflatex "$1".tex && biber "$1"; pdflatex "$1".tex && pdflatex "$1".tex
 	[ ! -f "$1.bib" ] && warning "\'$1.bib\' not found, skipped."
 	rm -f "$1."{'aux','bbl','bcf','blg','log','xml','nav','out','snm','toc'} && success "Cleaned build files."
+
+	if [ -n "$out" ]
+	then
+		[ "$(echo "$out" | cut -d\. -f 2)" = pdf ] && out="$(echo "$out" | cut -d\. -f 1)"
+		mv "$1.pdf" "$out.pdf"
+	fi
 }
 
 # Usage: build_md "file_name"
@@ -89,7 +111,15 @@ build_tex ()
 build_md ()
 {
 	[ ! "$(command -v pandoc)" ] && error "Missing 'pandoc', cannot build from .md"
-	pandoc "$1.md" -o "$1.pdf" && success "Compiled \'$1.md\'."
+	if [ -z "$out" ]
+	then
+		out="$1"
+	else
+		[ "$(echo "$out" | cut -d\. -f 2)" = pdf ] && out="$(echo "$out" | cut -d\. -f 1)"
+	fi
+
+	# Compile
+	pandoc "$1.md" -o "$out.pdf" && success "Compiled \'$1.md\'."
 }
 
 # Usage: build_man_page "file_name"
@@ -97,11 +127,20 @@ build_md ()
 build_man_page ()
 {
 	[ ! "$(command -v ps2pdf)" ] && error "Missing 'ps2pdf', cannot build from .1"
-	man -t <(cat "$1.1") | ps2pdf - "$1.pdf"
+	if [ -z "$out" ]
+	then
+		out="$1"
+	else
+		[ "$(echo "$out" | cut -d\. -f 2)" = pdf ] && out="$(echo "$out" | cut -d\. -f 1)"
+	fi
+
+	# Compile
+	man -t <(cat "$1.1") | ps2pdf - "$out.pdf"
 }
 
 parse_build ()
 {
+	[ -z "$file" ] && [ -z "$ftype" ] && warning "Missing file." && usage && exit 1
 	[ ! -f "$file.$ftype" ] && error "\'$file.$ftype\' not found."
 	case $ftype in
 		tex)
@@ -151,10 +190,25 @@ main ()
 	base=$(basename "$file" 2>/dev/null)
 	ftype=$(echo "$base" | cut -d\. -f 2)
 	file=$(echo "$base" | cut -d\. -f 1)
+	out=
 
-	while getopts "hpcv:edt" opt
+	while getopts "hpcv:o:edt-:" opt
 	do
-		case $opt in
+		case "$opt" in
+			-)
+				case "$OPTARG" in
+					TODO)
+						TODO
+						return 0
+						;;
+					output=*)
+						out=${OPTARG#*=}
+						;;
+					*)
+						error "Invalid arg, use -h for help." 1
+						;;
+				esac
+				;;
 			h)
 				usage
 				exit 0
@@ -168,7 +222,13 @@ main ()
 				parse_build
 				index=$((${#args[@]} - 1))
 				url="${args[$index]}"
-				args["$index"]="$(echo "$url" | cut -d\. -f 1).pdf"
+				if [ -z "$out" ]
+				then
+					args["$index"]="$(echo "$url" | cut -d\. -f 1).pdf"
+				else
+					[ "$(echo "$out" | cut -d\. -f 2)" = pdf ] && out="$(echo "$out" | cut -d\. -f 1)"
+					args["$index"]="$out.pdf"
+				fi
 				fetch_pdf
 				return 0
 				;;
@@ -189,6 +249,9 @@ main ()
 			t)
 				gen_tex_skelly
 				return 0
+				;;
+			o)
+				out="$OPTARG"
 				;;
 			*)
 				error "Invalid arg, use -h for help." 1
