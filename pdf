@@ -28,7 +28,7 @@ p:	Use dmenu to enter a password for the pdf.
 v:	Specify which pdf viewer you want to use.
 e:	Use gimp to edit a pdf.
 d:	Use mutool (from mupdf) to decompile a pdf.
-c:	Compile a pdf, Supported file type(s) include:
+c:	Compile a pdf and then open it, Supported file type(s) include:
 	 - .md
 	 - .tex
 	 - .1 (man pages)
@@ -38,6 +38,7 @@ Example(s)
 \$ pdf some.pdf # open pdf
 \$ pdf document.tex # Compile a tex file to 'document.pdf'
 \$ pdf document.md  # Compile a md file to 'document.pdf'
+\$ pdf -c document.md  # Compile a md file to 'document.pdf' and then open it
 
 Author: Skiqqy
 EOF
@@ -144,8 +145,12 @@ main ()
 				pass=$(prompt "PDF Password:")
 				com="$com -p $pass"
 				;;
-			c) # Force a compile (for debugging)
+			c)
 				parse_build
+				index=$((${#args[@]} - 1))
+				url="${args[$index]}"
+				args["$index"]="$(echo "$url" | cut -d\. -f 1).pdf"
+				fetch_pdf
 				return 0
 				;;
 			v)
