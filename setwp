@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Usage: setwp -h
 # Author: Skiqqy
 # This script allows the setting of a static wallpaper, or cycling through a set of wallpapers.
@@ -6,10 +6,11 @@
 # Variables
 set -B
 t=600
+args=( "$@" )
 
 usage () {
 cat << EOF
-Usage: setwp [options]
+Usage: setwp [options] [file|dir]
 
 h: Shows this message.
 d: Use the pictures in the specified directory, cycle with time t (default 10 min).
@@ -30,7 +31,7 @@ swp () {
 
 # cycle /path/to/dir
 cycle () {
-	d=${wpdir%/}
+	d=${1%/}
 	if [ $(echo "$t < 1" | bc) -eq 1 ]
 	then
 		echo "Invalid time used: t was '$t', now set to '600'"
@@ -51,45 +52,48 @@ cycle () {
 	done
 }
 
-while getopts "hd:t:zf:" opt
-do
-	case $opt in
-		h)
-			usage
-			exit 0
-			;;
-		d)
-			if [ -d "$OPTARG" ]
-			then
-				wpdir="$OPTARG"
-			fi
-			sf=0
-			;;
-		t)
-			t="$OPTARG"
-			;;
-		z)
-			zoom=1
-			;;
-		f)
-			pic="$OPTARG"
-			;;
-		*)
-			echo "Invalid arg"
-			exit 1
-			;;
-	esac
-done
+main ()
+{
+	last=$((${#args[@]} - 1))
+	[ "$last" -eq -1 ] && usage && exit 1
+	file=${args["$last"]}
+	zoom=
 
-if [ ! -z $wpdir ]
-then
-	cycle
-elif [ ! -z $pic ]
-then
-	swp $pic
-elif [ -z $sf ]
-then
-	swp $1
-else
-	echo Error.
-fi
+	while getopts "hd:t:zf:" opt
+	do
+		case $opt in
+			h)
+				usage
+				exit 0
+				;;
+			t)
+				t="$OPTARG"
+				;;
+			z)
+				zoom=1
+				;;
+			f|d)
+				file="$OPTARG"
+				;;
+			*)
+				echo "Invalid arg"
+				exit 1
+				;;
+		esac
+	done
+
+	[ -z "$file" ] && echo "Invalid file, see -h" && exit 1
+
+	if [ -d "$file" ]
+	then
+		cycle "$file"
+	elif [ -f "$file" ]
+	then
+		swp "$file"
+	else
+		echo "<ERROR> Please check -h"
+		exit 1
+	fi
+}
+
+main "$@"
