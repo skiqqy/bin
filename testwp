@@ -1,0 +1,9 @@
+#!/bin/bash
+# A simple way for me to quickly test wallpapers.
+
+[ ! "$#" -eq 1 ] && exit 1
+[[ ! "$1" =~ ^http[s]?:// ]] && exit 1 # Check that it is a url.
+ftype=$(basename "$1" | cut -d\. -f 2)
+file=/tmp/"testwp.$ftype"
+curl -s "$1" > "$file"
+setwp  "$file"
