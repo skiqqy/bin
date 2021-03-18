@@ -6,4 +6,4 @@
 ftype=$(basename "$1" | cut -d\. -f 2)
 file=/tmp/"testwp.$ftype"
 curl -s "$1" > "$file"
-setwp  "$file"
+setwp "$file"
