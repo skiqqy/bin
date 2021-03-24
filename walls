@@ -22,7 +22,8 @@ options
 -t <n>             Only fetch the top n threads.
 -a                 Fetch all threads.
 -u                 Test wallpapers using setwp (found here https://github.com/skiqqy/bin/blob/master/setwp).
--o <number>        Open the wallpapers in your browser (with an optional limit on the amount to open), a means all.
+-o <number>        Open the first n wallpapers in your browser.
+-s <thread>        Specify a thread to use.
 
 Written by skiqqy.
 EOF
@@ -95,6 +96,42 @@ get_thread ()
 	echo "${threads[$index]}"
 }
 
+# Iterate over the links found in $links
+use_links ()
+{
+	# Safety stuff I dont nuke my ram by opening alot of links.
+	if [ -n "$open" ]
+	then
+		tmp=( $links ) # I want splitting
+		n=$((${#tmp[@]} - 1))
+
+		if [ "$open" -gt "$n" ]
+		then
+			open="$n"
+		fi
+
+		read -r -p "[WARNING] This will open $open link(s), proceed Y/N? " input
+		[[ ! $input =~ ^y|Y(es)?$ ]] && exit
+	fi
+
+	i=0
+	for link in $links
+	do
+		if [ -n "$open" ]
+		then
+			[ "$i" -eq "$open" ] && exit
+			echo "Opening $link"
+			xdg-open "$link"
+			((i++))
+		elif [ -n "$apply" ]
+		then
+			setwp "$link"
+		else
+			echo "$link" # This is just for debugging.
+		fi
+	done
+}
+
 # Spawn the tui
 tui ()
 {
@@ -119,40 +156,7 @@ tui ()
 	esac
 
 	links=$(thread_pics "$board" "$thread")
-
-
-	# Safety stuff I dont nuke my ram by opening alot of links.
-	if [ -n "$open" ]
-	then
-		tmp=( $links ) # I want splitting
-		n=$((${#tmp[@]} - 1))
-
-		if [ "$open" -gt "$n" ] || [ "$open" -eq "-1" ]
-		then
-			open="$n"
-		fi
-
-		read -r -p "[WARNING] This will open $open link(s), proceed Y/N? " input
-		[[ ! $input =~ ^y|Y(es)?$ ]] && exit
-	fi
-
-	i=0
-	for link in $links
-	do
-		if [ -n "$open" ]
-		then
-			[ "$i" -eq "$open" ] && exit
-			echo "Opening $link"
-			xdg-open "$link"
-			((i++))
-		elif [ -n "$apply" ]
-		then
-			echo "WIP: Test the wallpapers." # TODO
-			exit
-		else
-			echo "$link" # This is just for debugging.
-		fi
-	done
+	use_links
 }
 
 # Entry point
@@ -164,8 +168,9 @@ main ()
 	cnt=0
 	open=
 	apply=
+	specific_thread=
 
-	while getopts "hb:t:auo:" opt
+	while getopts "hb:t:auo:s:" opt
 	do
 		case $opt in
 			h)
@@ -184,18 +189,11 @@ main ()
 			u)
 				apply=1
 				;;
-			o) # Optional argument, kinda scuffed but meh WIP
-				case "$OPTARG" in
-					[0-9]*)
-						open="$OPTARG"
-						;;
-					a)
-						open=-1 # Open the first 10
-						;;
-					*)
-						open=5
-						;;
-				esac
+			o)
+				open="$OPTARG"
+				;;
+			s)
+				thread="$OPTARG"
 				;;
 			*)
 				usage
@@ -204,31 +202,37 @@ main ()
 		esac
 	done
 
-	# First we map thread titles to thier respective threads for later use.
-	res=$(board_threads "$board")
+	if [ -z "$thread" ]
+	then
+		# First we map thread titles to thier respective threads for later use.
+		res=$(board_threads "$board")
 
-	for r in $res
-	do
-		if [ -n "$top" ] && [ "$cnt" -ge "$top" ]
-		then
-			break # We have fetched the top n, hence exit
-		fi
-		res=$(thread_title "$board" "$r")
-		title=$(echo "$res" | cut -d ":" -f 1)
-		thread=$(echo "$res" | cut -d ":" -f 2)
-		if [ -z "$thread" ] || [ -z "$title" ]
-		then
-			continue
-		fi
-		titles+=( "$title" )
-		threads[$title]="$thread"
-		((cnt++))
-	done
+		for r in $res
+		do
+			if [ -n "$top" ] && [ "$cnt" -ge "$top" ]
+			then
+				break # We have fetched the top n, hence exit
+			fi
+			res=$(thread_title "$board" "$r")
+			title=$(echo "$res" | cut -d ":" -f 1)
+			thread=$(echo "$res" | cut -d ":" -f 2)
+			if [ -z "$thread" ] || [ -z "$title" ]
+			then
+				continue
+			fi
+			titles+=( "$title" )
+			threads[$title]="$thread"
+			((cnt++))
+		done
 
-	for ((;;))
-	do
-		tui
-	done
+		for ((;;))
+		do
+			tui
+		done
+	else
+		links=$(thread_pics "$board" "$thread")
+		use_links
+	fi
 }
 
 main "$@"
