@@ -168,7 +168,7 @@ main ()
 	cnt=0
 	open=
 	apply=
-	specific_thread=
+	thread=
 
 	while getopts "hb:t:auo:s:" opt
 	do
