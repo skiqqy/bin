@@ -3,29 +3,38 @@
 # This script will fetch pictures from a thread from 4chan and test them for wallpapers.
 
 # Our variables
+VERSION="v1.0"
 declare -A threads # Hashmap of title to thread id
 titles=() # Array containing titles from the catalog
 
 usage ()
 {
 	cat << EOF
-walls [options]
+walls $VERSION ~ The easy way to browse 4chan wallpapers.
+
+Usage: walls [options]
 
 options
 -------
 
--h           Shows this message.
--b <board>   Specify the board.
--t <n>       Only fetch the top n threads.
+-h                 Shows this message.
+-b <board>         Specify the board.
+-t <n>             Only fetch the top n threads.
+-a                 Fetch all threads.
+-u                 Test wallpapers using setwp (found here https://github.com/skiqqy/bin/blob/master/setwp).
+-o <number>        Open the wallpapers in your browser (with an optional limit on the amount to open), a means all.
+
+Written by skiqqy.
 EOF
 }
 
 # Fetch links to pictures from a thread.
 # Usage: thread_pics <board> <thread_nr>
+# TODO: Improve thise regex, grep was being wierd with \w etc, hence the scuffed version below.
 thread_pics ()
 {
 	res=$(curl -s https://boards.4chan.org/"$1"/thread/"$2" | \
-		grep -o -E "href=\"[/\.a-zA-Z0-9]*\.(jpg|png)\"")
+		grep -o -E "href=\"[/\.a-zA-Z0-9]*\.(jpg|png)\"" | uniq)
 	for l in $res
 	do
 		url=$(echo "$l" | cut -d= -f 2)
@@ -86,7 +95,7 @@ get_thread ()
 	echo "${threads[$index]}"
 }
 
-# Spawn our tui
+# Spawn the tui
 tui ()
 {
 	print_tui
@@ -109,7 +118,41 @@ tui ()
 		;;
 	esac
 
-	thread_pics "$board" "$thread"
+	links=$(thread_pics "$board" "$thread")
+
+
+	# Safety stuff I dont nuke my ram by opening alot of links.
+	if [ -n "$open" ]
+	then
+		tmp=( $links ) # I want splitting
+		n=$((${#tmp[@]} - 1))
+
+		if [ "$open" -gt "$n" ] || [ "$open" -eq "-1" ]
+		then
+			open="$n"
+		fi
+
+		read -r -p "[WARNING] This will open $open link(s), proceed Y/N? " input
+		[[ ! $input =~ ^y|Y(es)?$ ]] && exit
+	fi
+
+	i=0
+	for link in $links
+	do
+		if [ -n "$open" ]
+		then
+			[ "$i" -eq "$open" ] && exit
+			echo "Opening $link"
+			xdg-open "$link"
+			((i++))
+		elif [ -n "$apply" ]
+		then
+			echo "WIP: Test the wallpapers." # TODO
+			exit
+		else
+			echo "$link" # This is just for debugging.
+		fi
+	done
 }
 
 # Entry point
@@ -117,10 +160,12 @@ main ()
 {
 	# Vars
 	board=wg
-	top=
+	top=3 # Fetch top 3 by default.
 	cnt=0
+	open=
+	apply=
 
-	while getopts "hb:t:" opt
+	while getopts "hb:t:auo:" opt
 	do
 		case $opt in
 			h)
@@ -132,6 +177,25 @@ main ()
 				;;
 			t)
 				top="$OPTARG"
+				;;
+			a)
+				top=
+				;;
+			u)
+				apply=1
+				;;
+			o) # Optional argument, kinda scuffed but meh WIP
+				case "$OPTARG" in
+					[0-9]*)
+						open="$OPTARG"
+						;;
+					a)
+						open=-1 # Open the first 10
+						;;
+					*)
+						open=5
+						;;
+				esac
 				;;
 			*)
 				usage
