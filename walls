@@ -1,0 +1,142 @@
+#!/bin/bash
+# Author: Skiqqy
+# This script will fetch pictures from a thread from 4chan and test them for wallpapers.
+
+# Our variables
+declare -A threads # Hashmap of title to thread id
+titles=() # Array containing titles from the catalog
+
+usage ()
+{
+	cat << EOF
+walls [options]
+
+options
+-------
+
+-h           Shows this message.
+-b <board>   Specify the board.
+-t <n>       Only fetch the top n threads.
+EOF
+}
+
+# Fetch links to pictures from a thread.
+# Usage: thread_pics <board> <thread_nr>
+thread_pics ()
+{
+	res=$(curl -s https://boards.4chan.org/"$1"/thread/"$2" | \
+		grep -o -E "href=\"[/\.a-zA-Z0-9]*\.(jpg|png)\"")
+	for l in $res
+	do
+		url=$(echo "$l" | cut -d= -f 2)
+		url="https:${url//\"}"
+		echo "$url"
+	done
+}
+
+# Get the title of a thread from a board
+# Usage: thread_title <board> <thread>
+# Prints: <Thread Title>:
+# TODO: Improve thise regex, grep was being wierd with \w etc, hence the scuffed version below.
+thread_title ()
+{
+	res=$(curl -s https://boards.4chan.org/"$1"/thread/"$2" | \
+		grep -o -E "<span class=\"subject\">[/\\\.a-zA-Z0-9\ ]*</span>" | head -1)
+	res=$(echo "$res" | cut -d ">" -f 2 | cut -d "<" -f 1)
+	[ -n "$res" ] && echo "$res:$2"
+}
+
+# Fetch threads from a board
+# Usage: board_threads <board>
+board_threads ()
+{
+	curl -s https://a.4cdn.org/"$1"/catalog.json | jq '.[].threads[].no'
+}
+
+print_tui ()
+{
+	clear # Clear the screen so that the printing looks nice
+	echo "To exit type 'EXIT'"
+	echo -e "-------------------\n"
+
+	i=0
+	for title in "${titles[@]}"
+	do
+		echo "$i. $title"
+		((i++))
+	done
+	echo
+}
+
+# Print the list of threads with thier title, ask the user which thread they want, and return the result
+get_thread ()
+{
+	read -r -p "Index: " index
+	index=${titles[$index]}
+	echo "${threads[$index]}"
+}
+
+# Spawn our tui
+tui ()
+{
+	print_tui
+	thread=$(get_thread)
+	thread_pics "$board" "$thread"
+}
+
+# Entry point
+main ()
+{
+	# Vars
+	board=wg
+	top=
+	cnt=0
+
+	while getopts "hb:t:" opt
+	do
+		case $opt in
+			h)
+				usage
+				exit 0
+				;;
+			b)
+				board="$OPTARG"
+				;;
+			t)
+				top="$OPTARG"
+				;;
+			*)
+				usage
+				exit 1
+				;;
+		esac
+	done
+
+	# First we map thread titles to thier respective threads for later use.
+	res=$(board_threads "$board")
+
+	for r in $res
+	do
+		if [ -n "$top" ] && [ "$cnt" -ge "$top" ]
+		then
+			break # We have fetched the top n, hence exit
+		fi
+		res=$(thread_title "$board" "$r")
+		title=$(echo "$res" | cut -d ":" -f 1)
+		thread=$(echo "$res" | cut -d ":" -f 2)
+		if [ -z "$thread" ] || [ -z "$title" ]
+		then
+			continue
+		fi
+		titles+=( "$title" )
+		threads[$title]="$thread"
+		((cnt++))
+	done
+
+	for ((;;))
+	do
+		tui
+	done
+}
+
+main "$@"
