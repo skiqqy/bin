@@ -72,6 +72,16 @@ print_tui ()
 get_thread ()
 {
 	read -r -p "Index: " index
+	if [[ "$index" =~ ^(exit)|(EXIT)$ ]]
+	then
+		return 1
+	fi
+	# We check that the input is a number and it is in the correct range, else we exit.
+	if [[ ! "$index" =~ ^[0-9]+$ ]] || [ "$index" -lt 0 ] || [ "$index" -ge "$cnt" ] # Short circuiting
+	then
+		return 2
+	fi
+
 	index=${titles[$index]}
 	echo "${threads[$index]}"
 }
@@ -80,7 +90,25 @@ get_thread ()
 tui ()
 {
 	print_tui
+
 	thread=$(get_thread)
+	case $? in
+		1)
+			echo "Goodbye!"
+			exit
+			;;
+		2)
+			if [ "$cnt" -eq 1 ]
+			then
+				range="{0}"
+			else
+				range="[0 , $((cnt-1))]"
+			fi
+			echo "Invalid input, expecting an integer in the set $range."
+			exit 2
+		;;
+	esac
+
 	thread_pics "$board" "$thread"
 }
 
