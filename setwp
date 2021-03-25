@@ -14,19 +14,37 @@ Usage: setwp [options] [file|dir]
 
 h: Shows this message.
 d: Use the pictures in the specified directory, cycle with time t (default 10 min).
-t: set time t to a specific value.
+t: Set time t to a specific value.
 z: Make feh zoom in on the wallpapers.
-f: specify a single picture to use.
+f: Specify a single picture to use.
+p: Show the path to the picture in the bottem left corner of the picture.
 EOF
 }
 
-swp () {
-	if [ -z $zoom ]
+# Set a wallpaper with text in the bottem left corner
+# Usage swptext /path/to/picure "text"
+swptext () {
+	rm -f /tmp/setwp_text.png
+	convert "$1" -gravity SouthWest -annotate +1+3 "$2" /tmp/setwp_text.png
+
+	if [ -z "$zoom" ]
 	then
-		feh --bg-scale $1
+		opt=scale
 	else
-		feh --bg-fill $1
+		opt=fill
 	fi
+	feh --bg-"$opt" /tmp/setwp_text.png
+}
+
+swp () {
+	if [ -z "$zoom" ]
+	then
+		opt=scale
+	else
+		opt=fill
+	fi
+
+	feh --bg-"$opt" "$1"
 }
 
 # cycle /path/to/dir
@@ -41,7 +59,12 @@ cycle () {
 	do
 		for file in $d/{*.png,*.jpg,*.jpeg}
 		do
-			swp $file
+			if [ -z "$path" ]
+			then
+				swp "$file"
+			else
+				swptext "$file" "$(realpath "$file")"
+			fi
 			sleep $t
 			if [ ! $? -eq 0 ]
 			then
@@ -92,8 +115,9 @@ main ()
 	[ "$last" -eq -1 ] && usage && exit 1
 	file=${args["$last"]}
 	zoom=
+	path=
 
-	while getopts "hd:t:zf:" opt
+	while getopts "hd:t:zf:p" opt
 	do
 		case $opt in
 			h)
@@ -108,6 +132,9 @@ main ()
 				;;
 			f|d)
 				file="$OPTARG"
+				;;
+			p)
+				path=1
 				;;
 			*)
 				echo "Invalid arg"
@@ -125,7 +152,12 @@ main ()
 		cycle "$file"
 	elif [ -f "$file" ]
 	then
-		swp "$file"
+		if [ -z "$path" ]
+		then
+			swp "$file"
+		else
+			swptext "$file" "$(realpath "$file")"
+		fi
 	else
 		echo "<ERROR> Please check -h"
 		exit 1
