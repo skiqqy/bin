@@ -44,15 +44,11 @@ build ()
 {
 	echo "Building tags file."
 
-	(
-		cd "$3" || exit
-		ctags $1 ./* # Scuffed bc `ctags "$3/*"` doesnt work XXX Also i want word splitting
-		curr=$(pwd)
-		if [ ! "$2" = "$curr" ]
-		then
-			mv tags "$2"
-		fi
-	)
+	ctags $1 "$3/"* # I want splitting
+	if [ ! "$2" = "$(pwd)" ]
+	then
+		mv tags "$2"
+	fi
 }
 
 # Convert a date.
