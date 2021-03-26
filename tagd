@@ -1,0 +1,68 @@
+#!/bin/bash
+# tagd is a simple script that will rebuild ctag files when files are edited.
+# This script also acts as a wrapper for ctags.
+# Author: Skiqqy
+
+usage ()
+{
+	cat << EOF
+tagd ~ The ctags daemon.
+
+Usage: tagd [options]
+
+Options
+-------
+-h    Shows this message.
+-o    Specify where the tags file should be put (default is curr directory).
+-s    Specify the source directory that ctags must generate tags for (default is crr directory).
+-g    Generate ctags and then exit.
+-d    Daemonize.
+EOF
+}
+
+main ()
+{
+	# Vars
+	tags=$(pwd)
+	src=$(pwd)
+	daemonize=false
+	gen=false
+
+	while getopts "ho:s:dg" opt
+	do
+		case $opt in
+			h)
+				usage
+				exit
+				;;
+			o)
+				tags=$(realpath "$OPTARG")
+				if [ ! -d "$OPTARG" ]
+				then
+					echo "-o must specify a valid directory."
+					exit 1
+				fi
+				;;
+			s)
+				src=$(realpath "$OPTARG")
+				if [ ! -d "$OPTARG" ]
+				then
+					echo "-s must specify a valid directory."
+					exit 1
+				fi
+				;;
+			d)
+				daemonize=true
+				;;
+			g)
+				gen=true
+				;;
+			*)
+				usage
+				exit 1
+				;;
+		esac
+	done
+}
+
+main "$@"
