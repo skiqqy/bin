@@ -145,7 +145,7 @@ main ()
 				echo "Change detected!"
 				iter=$(date)
 				build "$copts" "$tags" "$src"
-				continue
+				break # Yes I know that techinically we only have to look at the first item, but this loop is to allow for the script to be extended.
 			fi
 		done
 	done
