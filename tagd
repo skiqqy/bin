@@ -3,6 +3,9 @@
 # This script also acts as a wrapper for ctags.
 # Author: Skiqqy
 
+set -B
+files=( )
+
 usage ()
 {
 	cat << EOF
@@ -16,19 +19,67 @@ Options
 -o    Specify where the tags file should be put (default is curr directory).
 -s    Specify the source directory that ctags must generate tags for (default is crr directory).
 -g    Generate ctags and then exit.
+-r    How often to refresh the tags file (in seconds).
+-R    Recursively the directory (identical to ctags -R).
 -d    Daemonize.
 EOF
+}
+
+# set ${files[@]} to contain files in src with thier edited times.
+set_files ()
+{
+	files=( )
+	res=$(stat -c "%y|%n" "$src"/{*.c,*.h} | sort -r) # The sort is so when looping over the array if a time is found less than the last $iter the loop may exit (this is an optimization).
+
+	IFS=$'\n'
+	for file in $res # I want splitting.
+	do
+		files+=( "$file" )
+	done
+	IFS=" " # Reset IFS
+}
+
+# Usage: build <options> <output dir> <source dir>
+build ()
+{
+	echo "Building tags file."
+
+	(
+		cd "$3" || exit
+		ctags $1 ./* # Scuffed bc `ctags "$3/*"` doesnt work XXX Also i want word splitting
+		curr=$(pwd)
+		if [ ! "$2" = "$curr" ]
+		then
+			mv tags "$2"
+		fi
+	)
+}
+
+# Convert a date.
+# Usage: conv_date <date>
+conv_date() {
+	date --date="$1" +"%Y-%m-%d %H:%M:%S"
+}
+
+# Usage: comp_date <date1> <date2>
+# Returns 0 if date1 < date 2, 1 date2 < date1
+comp_date ()
+{
+	[[ $(conv_date "$1") < $(conv_date "$2") ]]
 }
 
 main ()
 {
 	# Vars
 	tags=$(pwd)
-	src=$(pwd)
-	daemonize=false
+	src=.
+	daemonize=false # TODO: Implement daemonize feature.
 	gen=false
+	iter=$(date)
+	refresh=60
+	copts=
 
-	while getopts "ho:s:dg" opt
+	while getopts "ho:s:dgr:R" opt
 	do
 		case $opt in
 			h)
@@ -57,11 +108,50 @@ main ()
 			g)
 				gen=true
 				;;
+			r)
+				if [[ ! "$OPTARG" =~ ^[0-9]+(\.[0-9]+)?$ ]] || [[ "$OPTARG" =~ ^0(\.0*)?$ ]]
+				then
+					echo "-r must be a non zero real."
+					exit 1
+				fi
+				refresh="$OPTARG"
+				;;
+			R)
+				copts="-R"
+				;;
 			*)
 				usage
 				exit 1
 				;;
 		esac
+	done
+
+	# Build tags file before starting main loop.
+	build "$copts" "$tags" "$src"
+
+	if "$gen"
+	then
+		exit
+	fi
+
+	# Start
+	for ((;;))
+	do
+		sleep "$refresh"
+		set_files
+		for file in "${files[@]}"
+		do
+			time=$(echo "$file" | cut -d "|" -f 1 | cut -d\. -f 1)
+			file=$(echo "$file" | cut -d "|" -f 2)
+			
+			if comp_date "$iter" "$time"
+			then
+				echo "Change detected!"
+				iter=$(date)
+				build "$copts" "$tags" "$src"
+				continue
+			fi
+		done
 	done
 }
 
