@@ -1,8 +1,11 @@
 #!/bin/bash
 # Prints the word of the day from merriam webster along with its definition.
 
-html=$(curl -s --connect-timeout 0.1 https://www.merriam-webster.com/word-of-the-day)
+html=$(curl -s --connect-timeout 0.05 https://www.merriam-webster.com/word-of-the-day)
 wod=$(echo "$html" | grep -Eo "<h1>\w+</h1>" | sed -E 's|<h1>(\w+)</h1>|\1|g') # Parse word of the day.
 def=$(echo "$html" | grep -Eo '<strong>:</strong>.+</p>' | sed -E 's|<strong>:</strong> (.+)</p>|\1|g') # Parse definition
 
-echo "$wod ~ $def"
+if [ -n "$wod" ] && [ -n "$def" ]
+then
+	echo -e "\n$wod ~ $def\n"
+fi
