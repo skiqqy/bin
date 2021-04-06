@@ -1,5 +1,5 @@
 #!/bin/bash
-# A highly stupid version of grep
+# A highly stupid version of grep, DISCLAIMER, this is a joke, I know its ineffecient as hell.
 # Written by skiqqy
 
 args=( $@ )
