@@ -1,0 +1,50 @@
+#!/bin/bash
+# A highly stupid version of grep
+# Written by skiqqy
+
+usage ()
+{
+	cat << EOF
+sgrep ~ A *really* stupid grep implementation.
+
+Usage: sgrep [OPTION...] PATTERN [FILE...]
+EOF
+}
+
+template ()
+{
+	# Lex template
+	cat << EOF
+%{
+#include <stdio.h>
+%}
+REGEX return 1;
+.*    return 0;
+%%
+EOF
+}
+
+# Create the lex file for the specified regex
+# Usage: comp "regex"
+comp ()
+{
+	lex -o /tmp/"$$"sgrep.c <(template | sed -E "s|REGEX|$1|g")
+}
+
+main ()
+{
+	while getopts "h" opt
+	do
+		case "$opt" in
+			h)
+				usage 0
+				;;
+
+			*)
+				usage 1
+				;;
+		esac
+	done
+}
+
+main "$@"
