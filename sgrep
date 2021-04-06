@@ -70,8 +70,10 @@ main ()
 				;;
 		esac
 	done
+
 	comp "$1"
 
+	# This is just for now bc im lazy af
 	if [ "$#" -ge 2 ]
 	then
 		# Get args
