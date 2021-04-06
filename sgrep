@@ -2,6 +2,8 @@
 # A highly stupid version of grep
 # Written by skiqqy
 
+args=( $@ )
+
 usage ()
 {
 	cat << EOF
@@ -9,6 +11,7 @@ sgrep ~ A *really* stupid grep implementation.
 
 Usage: sgrep [OPTION...] PATTERN [FILE...]
 EOF
+	exit "$1"
 }
 
 template ()
@@ -17,10 +20,31 @@ template ()
 	cat << EOF
 %{
 #include <stdio.h>
+int match = 1;
 %}
-REGEX return 1;
-.*    return 0;
 %%
+.*REGEX.* { printf("%s", yytext); match = 0; }
+.*        ;
+%%
+int main(int argc, char *argv[])
+{
+	FILE *fp = NULL;
+	int i;
+
+	if (argc >= 2) {
+		for (i = 1; i < argc; i++) {
+			fp = fopen(argv[i], "r");
+			yyin = fp;
+			yylex();
+			fclose(fp);
+		}
+	} else {
+		// Read from /dev/stdin
+		yylex();
+	}
+
+	return match;
+}
 EOF
 }
 
@@ -28,7 +52,8 @@ EOF
 # Usage: comp "regex"
 comp ()
 {
-	lex -o /tmp/"$$"sgrep.c <(template | sed -E "s|REGEX|$1|g")
+	lex -o /tmp/sgrep.c <(template | sed -E "s|REGEX|$1|g")
+	gcc -o /tmp/sgrep /tmp/sgrep.c -lfl
 }
 
 main ()
@@ -45,6 +70,20 @@ main ()
 				;;
 		esac
 	done
+	comp "$1"
+
+	if [ "$#" -ge 2 ]
+	then
+		# Get args
+		files=
+		for ((i=1; i < "$#"; i++))
+		do
+			files="$files ${args["$i"]}"
+		done
+		/tmp/sgrep $files # Yes i want globbing
+	else
+		/tmp/sgrep
+	fi
 }
 
 main "$@"
