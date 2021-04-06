@@ -59,6 +59,7 @@ comp ()
 
 main ()
 {
+	# TODO: Add grep options
 	while getopts "h" opt
 	do
 		case "$opt" in
