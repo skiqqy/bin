@@ -23,7 +23,8 @@ template ()
 int match = 1;
 %}
 %%
-.*REGEX.* { printf("%s", yytext); match = 0; }
+.*REGEX.* { printf("%s\n", yytext); match = 0; }
+[" "\n\t] |
 .*        ;
 %%
 int main(int argc, char *argv[])
