@@ -21,6 +21,15 @@ EOF
 	exit "$1"
 }
 
+# Build my tmux workspace
+# Usage: build "session:pain"
+build ()
+{
+	tmux split-window -t "$1" -h -p 50
+	tmux send-keys -t "$1.0" 'ranger' Enter
+	tmux send-keys -t "$1.1" '' Enter
+}
+
 main ()
 {
 	opts='hs:a'
@@ -63,9 +72,12 @@ main ()
 		echo "Creating window."
 		tmux a -t -d "$sesh" > /dev/null 2>&1
 		tmux new-window -d -n "$wn"
-		echo TODO: Build
+		build "$sesh:$wn"
 	else
 		echo "Session DNE, creating $sesh:$wn"
+		tmux new-session -d -s "$sesh"
+		tmux rename-window -t "$sesh:1" "$wn"
+		build "$sesh:$wn"
 	fi
 
 	if "$attach"
