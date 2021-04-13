@@ -28,6 +28,7 @@ build ()
 	tmux split-window -t "$1" -h -p 50
 	tmux send-keys -t "$1.0" 'ranger' Enter
 	tmux send-keys -t "$1.1" '' Enter
+	tmux select-pane -t "$1.0"
 }
 
 main ()
