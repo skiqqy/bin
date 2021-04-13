@@ -70,8 +70,7 @@ main ()
 	elif tmux has-session -t "$sesh" > /dev/null 2>&1
 	then
 		echo "Creating window."
-		tmux a -t -d "$sesh" > /dev/null 2>&1
-		tmux new-window -d -n "$wn"
+		tmux new-window -d -n "$wn" -t "$sesh"
 		build "$sesh:$wn"
 	else
 		echo "Session DNE, creating $sesh:$wn"
